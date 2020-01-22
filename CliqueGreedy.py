@@ -29,6 +29,7 @@ def get_clique(graph):
     :return:
     """
 
+    # used vertices
     clique = [vertex for vertex in graph.vertices]
 
     c_edges = set(edge for edge in graph.edges)
@@ -43,15 +44,32 @@ def get_clique(graph):
 
         # could be optimized...
         inner_edges = [edge for edge in c_edges if edge[0] == v or edge[1] == v]
-        clique = set([x[0] for x in inner_edges] + [x[1] for x in inner_edges])
+        clique = set([x[0] for x in inner_edges] + [x[1] for x in inner_edges]).intersection(clique)
         c_edges = [edge for edge in graph.edges if edge[0] in clique or edge[1] in clique]
 
-        if c_edges == last_size:
+        if len(c_edges) == last_size and is_clique(clique, graph):
             break
 
         last_size = len(c_edges)
 
     return clique
+
+
+def is_clique(clique, graph):
+    """
+    Check if given vertices are part of a clique in given graph "graph"
+    :param clique:
+    :param graph:
+    :return: True if vertices "clique" form a clique
+            False otherwise
+    """
+    for v1 in clique:
+        for v2 in clique:
+            if v1 != v2 and (v1, v2) not in graph.edges and (v2, v1) not in graph.edges:
+                return False
+
+    return True
+
 
 
 def gen_random_graph_with_clique(size, clique_size, r):
@@ -69,12 +87,27 @@ def gen_random_graph_with_clique(size, clique_size, r):
 
     clique = random.sample(v, clique_size)
 
+    degrees = {vn: (clique_size if vn in clique else 0) for vn in v}
+
+    # create clique
+    for i in range(0, len(v) - 1):
+        vi = v[i]
+        for j in range(i + 1, len(v)):
+            vj: int = v[j]
+            if vi in clique and vj in clique:
+                g_edges.append((vi, vj))
+
+    # add other edges
     for i in range(0, len(v)-1):
         vi = v[i]
         for j in range(i+1, len(v)):
             vj: int = v[j]
 
-            if r >= random.random() or vi in clique and vj in clique:
+            if r >= random.random() \
+                    and (degrees[vi] < clique_size - 1 or degrees[vj] < clique_size - 1) \
+                    and not (vi in clique and vj in clique):
                 g_edges.append((vi, vj))
+                degrees[vi] += 1
+                degrees[vj] += 1
 
     return Graph(g_edges)
